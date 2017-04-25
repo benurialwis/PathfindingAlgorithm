@@ -16,23 +16,26 @@ public class AStar {
     static PriorityQueue<Node> open; //priority queue
 
     static boolean closed[][];
-    
-    
+
     /* set the final  cost for visited nodes */
-    static void updateCost(Node current, Node t, double cost){
-        if(t == null || closed[t.x][t.y])return;
-        double tFCost = t.heuristicCost+cost;
-        
+    static void updateCost(Node current, Node t, double cost) {
+        if (t == null || closed[t.x][t.y]) {
+            return;
+        }
+        double tFCost = t.heuristicCost + cost;
+
         boolean inOpen = open.contains(t);
-        if(!inOpen || tFCost<t.fCost){
+        if (!inOpen || tFCost < t.fCost) {
             t.fCost = tFCost; //setting up the final cost of the cell
             t.parent = current; //setting the parent node
-            if(!inOpen)open.add(t);
+            if (!inOpen) {
+                open.add(t);
+            }
         }
     }
 
     /* serach for possible path considering the lowest cost */
-    public void tracePath(int Bi, int Bj, double hVCost, double dCost) {
+    public void tracePath(int Bi, int Bj, double hVCost, double dCost, String method) {
         open.add(start);
 
         Node current;
@@ -43,7 +46,7 @@ public class AStar {
             if (current == null) { //breaking out if the start point is a blocked cell
                 break;
             }
-            closed[current.x][current.y] = true; 
+            closed[current.x][current.y] = true;
 
             if (current.equals(grid[Bi][Bj])) { //returning if the start point and the end point is the same
                 return;
@@ -52,17 +55,19 @@ public class AStar {
             if (current.x - 1 >= 0) {
                 t = grid[current.x - 1][current.y];
                 updateCost(current, t, current.fCost + hVCost);
-                
+
                 //upper left
-                if (current.y - 1 >= 0) {
-                    t = grid[current.x - 1][current.y - 1];
-                    updateCost(current, t, current.fCost + dCost);
-                }
-                
-                //upper right
-                if (current.y + 1 < grid[0].length) {
-                    t = grid[current.x - 1][current.y + 1];
-                    updateCost(current, t, current.fCost + dCost);
+                if (!method.equalsIgnoreCase("M")) {
+                    if (current.y - 1 >= 0) {
+                        t = grid[current.x - 1][current.y - 1];
+                        updateCost(current, t, current.fCost + dCost);
+                    }
+
+                    //upper right
+                    if (current.y + 1 < grid[0].length) {
+                        t = grid[current.x - 1][current.y + 1];
+                        updateCost(current, t, current.fCost + dCost);
+                    }
                 }
             }
 
@@ -82,49 +87,62 @@ public class AStar {
             if (current.x + 1 < grid.length) {
                 t = grid[current.x + 1][current.y];
                 updateCost(current, t, current.fCost + hVCost);
+                if (method.equalsIgnoreCase("M")) {
+                    //down left
+                    if (current.y - 1 >= 0) {
+                        t = grid[current.x + 1][current.y - 1];
+                        updateCost(current, t, current.fCost + dCost);
+                    }
 
-                //down left
-                if (current.y - 1 >= 0) {
-                    t = grid[current.x + 1][current.y - 1];
-                    updateCost(current, t, current.fCost + dCost);
+                    //down right
+                    if (current.y + 1 < grid[0].length) {
+                        t = grid[current.x + 1][current.y + 1];
+                        updateCost(current, t, current.fCost + dCost);
+                    }
+
                 }
 
-                //down right
-                if (current.y + 1 < grid[0].length) {
-                    t = grid[current.x + 1][current.y + 1];
-                    updateCost(current, t, current.fCost + dCost);
-                }
             }
-            
         }
     }
-    
+
+    public void setHeuristicCost(int N, int Bi, int Bj, String method) {
+        for (int i = 0; i < N; ++i) {
+            for (int j = 0; j < N; ++j) {
+                grid[i][j] = new Node(i, j);
+
+                if (method.equalsIgnoreCase("M")) {
+                    grid[i][j].heuristicCost = Math.abs(i - Bi) + Math.abs(j - Bj);
+                } else if (method.equalsIgnoreCase("E")) {
+                    grid[i][j].heuristicCost = (int) Math.pow((int) Math.pow(i - Bi, 2) + (int) Math.pow(j - Bj, 2), 1 / 2);
+                } else if (method.equalsIgnoreCase("C")) {
+                    grid[i][j].heuristicCost = Math.max(Math.abs(i - Bi), Math.abs(j - Bj));
+                }
+            }
+        }
+    }
+
     /* tracing back the path*/
-    public ArrayList<Node> getPath(boolean[][] a, int Ai, int Aj, int Bi, int Bj,double hVCost, double dCost, String method){
+    public ArrayList<Node> getPath(boolean[][] a, int Ai, int Aj, int Bi, int Bj, double hVCost, double dCost, String method) {
         int N = a.length;
-        
+
         grid = new Node[N][N];
         closed = new boolean[N][N];
-        
-        open = new PriorityQueue<>((Object o1, Object o2) -> {
-                Node c1 = (Node)o1;
-                Node c2 = (Node)o2;
 
-                return c1.fCost<c2.fCost?-1:
-                        c1.fCost>c2.fCost?1:0;
-            });
-        
+        open = new PriorityQueue<>((Object o1, Object o2) -> {
+            Node c1 = (Node) o1;
+            Node c2 = (Node) o2;
+
+            return c1.fCost < c2.fCost ? -1
+                    : c1.fCost > c2.fCost ? 1 : 0;
+        });
+
         start = new Node(Ai, Aj); //setting the start point
         end = new Node(Bi, Bj); //setting the end point
-        
+
         //setting the heuristic value
-        for(int i=0;i<N;++i){
-              for(int j=0;j<N;++j){
-                  grid[i][j] = new Node(i, j);
-                  grid[i][j].heuristicCost = Math.abs(i-Bi)+Math.abs(j-Bj);
-              }
-           }
-        
+        setHeuristicCost(N, Bi, Bj, method);
+
         //setting the blocked cells
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
@@ -134,32 +152,30 @@ public class AStar {
                 }
             }
         }
-        
-        
-           start.fCost = 0; //initialising the final cost of the starting point as zero
-           
-           tracePath(Bi, Bj, hVCost,dCost);
-           
-           ArrayList<Node> path = new ArrayList<>();
-           DecimalFormat f = new DecimalFormat("##.00");
-           
-           if(closed[Bi][Bj]){
-               //Trace back the path 
-                Node current = grid[Bi][Bj]; //starting from the end point
+
+        start.fCost = 0; //initialising the final cost of the starting point as zero
+
+        tracePath(Bi, Bj, hVCost, dCost,method);
+
+        ArrayList<Node> path = new ArrayList<>();
+        DecimalFormat f = new DecimalFormat("##.00");
+
+        if (closed[Bi][Bj]) {
+            //Trace back the path 
+            Node current = grid[Bi][Bj]; //starting from the end point
+            path.add(current);
+            System.out.print("Cost in " + method + ": " + f.format(current.fCost));
+            while (current.parent != null) {
                 path.add(current);
-                System.out.print("Cost in " + method + ": " + f.format(current.fCost)); 
-                while(current.parent!=null){
-                    path.add(current);
-                    current = current.parent;
-                } 
-                System.out.println();
-           }else {
-               System.out.println("No possible path");
-           }
-           
-           return path;
-        
+                current = current.parent;
+            }
+            System.out.println();
+        } else {
+            System.out.println("No possible path");
+        }
+
+        return path;
+
     }
-    
 
 }
